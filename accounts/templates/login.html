@@ -1,0 +1,194 @@
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Face Recognition</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: url('your-image-url.jpg') no-repeat center center fixed; 
+            background-size: cover;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        
+        .login-container {
+            width: 40%;
+            padding: 30px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        
+        h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        .camera-container {
+            position: relative;
+            margin: 20px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        video {
+            width: 100%;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        
+        #capture-button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        #capture-button:hover {
+            background-color: #0056b3;
+        }
+        
+        canvas {
+            display: none;
+        }
+        
+        #message {
+            color: black;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .register-container {
+                width: 90%;
+                padding: 20px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            input, button {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="login-container">
+    <h2>Login with Face Recognition</h2>
+    <form id="login-form">
+        <input type="text" id="username" name="username" placeholder="Username" required><br>
+        <input type="password" name="password" placeholder="Password" required><br>
+    
+        <div id="camera-container">
+            <video id="video" width="100%" height="auto" autoplay></video>
+            <button type="button" id="capture-button">Capture Face</button>
+            <canvas id="canvas" width="300" height="200"></canvas>
+        </div>
+
+        <button type="submit">Login</button>
+    </form>
+    <div id="message"></div>
+</div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const captureButton = document.getElementById('capture-button');
+        const loginForm = document.getElementById('login-form');
+        const messageDiv = document.getElementById('message');
+
+        let capturedImage = null;
+
+        // Access the camera and start the video stream
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then((stream) => {
+                video.srcObject = stream;
+            })
+            .catch((err) => {
+                console.log('Error accessing camera: ' + err);
+                messageDiv.innerText = 'Camera not accessible. Please check permissions.';
+            });
+
+        // Capture image from the video stream
+        captureButton.addEventListener('click', () => {
+            if (!video.srcObject) {
+                messageDiv.innerText = "Camera is not available.";
+                return;
+            }
+
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);  // Draw video frame to canvas
+            capturedImage = canvas.toDataURL('image/jpeg'); // Convert captured image to base64 format
+
+            messageDiv.innerText = "Face captured successfully! Ready to login.";
+        });
+
+        // Handle form submission
+        loginForm.onsubmit = async (e) => {
+            e.preventDefault();
+
+            if (!capturedImage) {
+                messageDiv.innerText = "Please capture your face first.";
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('username', document.getElementById('username').value);
+            formData.append('password', document.getElementsByName('password')[0].value);
+            formData.append('face_image', capturedImage);
+
+            try{
+                const response = await fetch('/login/', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                if (data.success) {
+                    messageDiv.innerText = data.message || 'Login successful!';
+                } else {
+                    messageDiv.innerText = data.message || 'Login failed!';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                messageDiv.innerText = 'An error occurred while processing your login.';
+            }
+        };
+    </script>
+</body>
+</html>
